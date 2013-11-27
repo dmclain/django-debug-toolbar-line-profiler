@@ -146,7 +146,7 @@ class ProfilingPanel(Panel):
     """
     title = _('Profiling')
 
-    template = 'debug_toolbar/panels/profiling.html'
+    template = 'debug_toolbar_line_profiler/panels/profiling.html'
 
     def _unwrap_closure_and_profile(self, func):
         if not hasattr(func, '__code__'):
