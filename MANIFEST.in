@@ -1,3 +1,4 @@
 include LICENSE
 include README.rst
 recursive-include debug_toolbar_line_profiler/templates *
+recursive-include debug_toolbar_line_profiler/static *
