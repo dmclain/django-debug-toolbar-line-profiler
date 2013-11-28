@@ -5,11 +5,7 @@ from django.utils.safestring import mark_safe
 from django.utils.six.moves import cStringIO
 from debug_toolbar.panels import Panel
 
-try:
-    from line_profiler import LineProfiler, show_func
-    DJ_PROFILE_USE_LINE_PROFILER = True
-except ImportError:
-    DJ_PROFILE_USE_LINE_PROFILER = False
+from line_profiler import LineProfiler, show_func
 
 
 import cProfile
@@ -128,7 +124,7 @@ class FunctionCall(object):
         return 16 * self.depth
 
     def line_stats_text(self):
-        if self._line_stats_text is None and DJ_PROFILE_USE_LINE_PROFILER:
+        if self._line_stats_text is None:
             lstats = self.statobj.line_stats
             if self.func in lstats.timings:
                 out = cStringIO()
@@ -160,15 +156,11 @@ class ProfilingPanel(Panel):
     def process_view(self, request, view_func, view_args, view_kwargs):
         self.profiler = cProfile.Profile()
         args = (request,) + view_args
-        if DJ_PROFILE_USE_LINE_PROFILER:
-            self.line_profiler = LineProfiler()
-            self._unwrap_closure_and_profile(view_func)
-            self.line_profiler.enable_by_count()
-            out = self.profiler.runcall(view_func, *args, **view_kwargs)
-            self.line_profiler.disable_by_count()
-        else:
-            self.line_profiler = None
-            out = self.profiler.runcall(view_func, *args, **view_kwargs)
+        self.line_profiler = LineProfiler()
+        self._unwrap_closure_and_profile(view_func)
+        self.line_profiler.enable_by_count()
+        out = self.profiler.runcall(view_func, *args, **view_kwargs)
+        self.line_profiler.disable_by_count()
         return out
 
     def add_node(self, func_list, func, max_depth, cum_time=0.1):
@@ -188,8 +180,7 @@ class ProfilingPanel(Panel):
         # Could be delayed until the panel content is requested (perf. optim.)
         self.profiler.create_stats()
         self.stats = DjangoDebugToolbarStats(self.profiler)
-        if DJ_PROFILE_USE_LINE_PROFILER:
-            self.stats.line_stats = self.line_profiler.get_stats()
+        self.stats.line_stats = self.line_profiler.get_stats()
         self.stats.calc_callees()
 
         root = FunctionCall(self.stats, self.stats.get_root_func(), depth=0)
