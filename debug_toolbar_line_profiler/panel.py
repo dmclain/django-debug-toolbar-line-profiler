@@ -9,6 +9,7 @@ from line_profiler import LineProfiler, show_func
 
 
 import cProfile
+import inspect
 from pstats import Stats
 from colorsys import hsv_to_rgb
 import os
@@ -158,6 +159,11 @@ class ProfilingPanel(Panel):
         args = (request,) + view_args
         self.line_profiler = LineProfiler()
         self._unwrap_closure_and_profile(view_func)
+        if view_func.func_globals['__name__'] == 'django.views.generic.base':
+            class_based_view = view_func.func_closure[1].cell_contents
+            for name, value in inspect.getmembers(class_based_view):
+                if name[0] != '_' and inspect.ismethod(value):
+                    self._unwrap_closure_and_profile(value)
         self.line_profiler.enable_by_count()
         out = self.profiler.runcall(view_func, *args, **view_kwargs)
         self.line_profiler.disable_by_count()
