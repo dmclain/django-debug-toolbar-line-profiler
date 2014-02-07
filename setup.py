@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='django-debug-toolbar-line-profiler',
-    version='0.2.1',
+    version='0.2.2',
     description='A panel for django-debug-toolbar that integrates ' +
                 'information from line_profiler',
     long_description=open('README.rst').read(),
@@ -14,7 +14,7 @@ setup(
     packages=find_packages(exclude=('tests', 'example')),
     install_requires=[
         'django-debug-toolbar>=1.0',
-        'line_profiler',
+        'line_profiler>=1.0b3',
     ],
     include_package_data=True,
     zip_safe=False,                 # because we're including static files
