@@ -130,8 +130,11 @@ class FunctionCall(object):
             if self.func in lstats.timings:
                 out = cStringIO()
                 fn, lineno, name = self.func
-                show_func(fn, lineno, name, lstats.timings[self.func], lstats.unit, stream=out)
-                self._line_stats_text = out.getvalue()
+                try:
+                    show_func(fn, lineno, name, lstats.timings[self.func], lstats.unit, stream=out)
+                    self._line_stats_text = out.getvalue()
+                except ZeroDivisionError:
+                    self._line_stats_text = "There was a ZeroDivisionError, total_time was probably zero"
             else:
                 self._line_stats_text = False
         return self._line_stats_text
