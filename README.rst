@@ -38,3 +38,19 @@ and add the panel to DEBUG_TOOLBAR_PANELS::
         ...
         'debug_toolbar_line_profiler.panel.ProfilingPanel',
     )
+
+Configuration
+=============
+
+By default, the panel will profile your view function. If you use class based views
+the panel will profile all functions on the class that don't start with _. If you
+want additional code to be profiled, add the @profile_additional decorator like so::
+
+    from debug_toolbar_line_profiler import profile_additional
+    from boto.s3.connection import S3Connection
+    
+    ...
+    
+    @profile_additional(S3Connection.make_request)
+    def your_view_code(*args, **kwargs):
+        ...
