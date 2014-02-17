@@ -152,6 +152,8 @@ class ProfilingPanel(Panel):
         if not hasattr(func, '__code__'):
             return
         self.line_profiler.add_function(func)
+        for subfunc in getattr(func, 'profile_additional', []):
+            self._unwrap_closure_and_profile(subfunc)
         if func.__closure__:
             for cell in func.__closure__:
                 if hasattr(cell.cell_contents, '__code__'):
