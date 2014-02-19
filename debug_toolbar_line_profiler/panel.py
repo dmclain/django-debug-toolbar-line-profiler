@@ -4,6 +4,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.safestring import mark_safe
 from django.utils.six.moves import cStringIO
 from debug_toolbar.panels import Panel
+from django.views.generic.base import View
 
 from line_profiler import LineProfiler, show_func
 
@@ -165,10 +166,12 @@ class ProfilingPanel(Panel):
         self.line_profiler = LineProfiler()
         self._unwrap_closure_and_profile(view_func)
         if view_func.func_globals['__name__'] == 'django.views.generic.base':
-            class_based_view = view_func.func_closure[1].cell_contents
-            for name, value in inspect.getmembers(class_based_view):
-                if name[0] != '_' and inspect.ismethod(value):
-                    self._unwrap_closure_and_profile(value)
+            for cell in view_func.func_closure:
+                target = cell.cell_contents
+                if inspect.isclass(target) and View in inspect.getmro(target):
+                    for name, value in inspect.getmembers(target):
+                        if name[0] != '_' and inspect.ismethod(value):
+                            self._unwrap_closure_and_profile(value)
         self.line_profiler.enable_by_count()
         out = self.profiler.runcall(view_func, *args, **view_kwargs)
         self.line_profiler.disable_by_count()
