@@ -9,9 +9,16 @@ more details about the panel's content.
 
 This package provides a panel that incorporates output from line_profiler_
 
-line_profiler is only compatible with the 2.x branch of python. This panel
-will only function with django_debug_toolbar>=1.0, before that it's functionality
-was contained in the debug_toolbar.panels.profiling.ProfilingPanel
+The stock line_profiler is only compatible with the 2.x branch of python
+but a patched version for Python 3 can be installed with::
+
+    pip install cython
+    pip install -e hg+https://bitbucket.org/kmike/line_profiler@7999f21#egg=line_profiler
+
+(cf. http://stackoverflow.com/questions/6273139/profiling-by-line-with-python-3)
+
+This panel will only function with django_debug_toolbar>=1.0, before that it's functionality
+was contained in the debug_toolbar.panels.profiling.ProfilingPanel.
 
 This Django Debug Toolbar panel is released under the BSD license, like Django
 and the Django Debug Toolbar. If you like it, please consider contributing!

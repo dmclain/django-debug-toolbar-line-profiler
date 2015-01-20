@@ -165,8 +165,8 @@ class ProfilingPanel(Panel):
         args = (request,) + view_args
         self.line_profiler = LineProfiler()
         self._unwrap_closure_and_profile(view_func)
-        if view_func.func_globals['__name__'] == 'django.views.generic.base':
-            for cell in view_func.func_closure:
+        if view_func.__globals__['__name__'] == 'django.views.generic.base':
+            for cell in view_func.__closure__:
                 target = cell.cell_contents
                 if inspect.isclass(target) and View in inspect.getmro(target):
                     for name, value in inspect.getmembers(target):
