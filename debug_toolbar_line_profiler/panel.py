@@ -14,6 +14,9 @@ import inspect
 from pstats import Stats
 from colorsys import hsv_to_rgb
 import os
+import sys
+
+PY3 = sys.version_info[0] == 3
 
 
 class DjangoDebugToolbarStats(Stats):
@@ -165,7 +168,9 @@ class ProfilingPanel(Panel):
         args = (request,) + view_args
         self.line_profiler = LineProfiler()
         self._unwrap_closure_and_profile(view_func)
-        if view_func.func_globals['__name__'] == 'django.views.generic.base':
+        view_func_name = view_func.__globals__['__name__'] if PY3 else \
+            view_func.func_globals['__name__'] 
+        if view_func_name == 'django.views.generic.base':
             for cell in view_func.func_closure:
                 target = cell.cell_contents
                 if inspect.isclass(target) and View in inspect.getmro(target):
