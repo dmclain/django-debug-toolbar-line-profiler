@@ -22,12 +22,15 @@ PY3 = sys.version_info[0] == 3
 class DjangoDebugToolbarStats(Stats):
     __root = None
 
-    def get_root_func(self):
+    def get_root_func(self, view_func):
         if self.__root is None:
+            filename = view_func.__code__.co_filename
+            firstlineno = view_func.__code__.co_firstlineno
             for func, (cc, nc, tt, ct, callers) in self.stats.items():
-                if len(callers) == 0:
+                if len(callers) == 0 and func[0] == filename and func[1] == firstlineno:
                     self.__root = func
                     break
+            assert self.__root is not None
         return self.__root
 
 
@@ -164,6 +167,7 @@ class ProfilingPanel(Panel):
                     self._unwrap_closure_and_profile(cell.cell_contents)
 
     def process_view(self, request, view_func, view_args, view_kwargs):
+        self.view_func = view_func
         self.profiler = cProfile.Profile()
         args = (request,) + view_args
         self.line_profiler = LineProfiler()
@@ -202,7 +206,7 @@ class ProfilingPanel(Panel):
         self.stats.line_stats = self.line_profiler.get_stats()
         self.stats.calc_callees()
 
-        root = FunctionCall(self.stats, self.stats.get_root_func(), depth=0)
+        root = FunctionCall(self.stats, self.stats.get_root_func(self.view_func), depth=0)
 
         func_list = []
         self.add_node(func_list, root, 10, root.stats[3] / 8)
