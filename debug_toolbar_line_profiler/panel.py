@@ -15,6 +15,8 @@ from django.views.generic.base import View
 
 from line_profiler import LineProfiler, show_func
 
+from . import signals
+
 
 class DjangoDebugToolbarStats(Stats):
     __root = None
@@ -191,6 +193,11 @@ class ProfilingPanel(Panel):
                     for name, value in inspect.getmembers(target):
                         if name[0] != '_' and inspect.ismethod(value):
                             self._unwrap_closure_and_profile(value)
+        signals.profiler_setup.send(sender=self,
+                                    profiler=self.line_profiler,
+                                    view_func=view_func,
+                                    view_args=view_args,
+                                    view_kwargs=view_kwargs)
         self.line_profiler.enable_by_count()
         out = self.profiler.runcall(view_func, *args, **view_kwargs)
         self.line_profiler.disable_by_count()
