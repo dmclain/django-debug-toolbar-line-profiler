@@ -175,7 +175,8 @@ class ProfilingPanel(Panel):
         view_func_name = view_func.__globals__['__name__'] if PY3 else \
             view_func.func_globals['__name__'] 
         if view_func_name == 'django.views.generic.base':
-            for cell in view_func.func_closure:
+            func_closure = view_func.__closure__ if PY3 else view_func.func_closure
+            for cell in func_closure:
                 target = cell.cell_contents
                 if inspect.isclass(target) and View in inspect.getmro(target):
                     for name, value in inspect.getmembers(target):
