@@ -15,6 +15,7 @@ setup(
     install_requires=[
         'django-debug-toolbar>=1.0',
         'line_profiler>=1.0b3',
+        'six>=1.10',
     ],
     include_package_data=True,
     zip_safe=False,                 # because we're including static files

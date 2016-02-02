@@ -1,5 +1,12 @@
 from __future__ import absolute_import, division, unicode_literals
 
+from colorsys import hsv_to_rgb
+import cProfile
+import inspect
+import os
+from pstats import Stats
+from six import PY2
+
 from django.utils.translation import ugettext_lazy as _
 from django.utils.safestring import mark_safe
 from django.utils.six.moves import cStringIO
@@ -7,16 +14,6 @@ from debug_toolbar.panels import Panel
 from django.views.generic.base import View
 
 from line_profiler import LineProfiler, show_func
-
-
-import cProfile
-import inspect
-from pstats import Stats
-from colorsys import hsv_to_rgb
-import os
-import sys
-
-PY3 = sys.version_info[0] == 3
 
 
 class DjangoDebugToolbarStats(Stats):
@@ -27,7 +24,9 @@ class DjangoDebugToolbarStats(Stats):
             filename = view_func.__code__.co_filename
             firstlineno = view_func.__code__.co_firstlineno
             for func, (cc, nc, tt, ct, callers) in self.stats.items():
-                if len(callers) == 0 and func[0] == filename and func[1] == firstlineno:
+                if (len(callers) == 0
+                        and func[0] == filename
+                        and func[1] == firstlineno):
                     self.__root = func
                     break
             assert self.__root is not None
@@ -138,10 +137,15 @@ class FunctionCall(object):
                 out = cStringIO()
                 fn, lineno, name = self.func
                 try:
-                    show_func(fn, lineno, name, lstats.timings[self.func], lstats.unit, stream=out)
+                    show_func(fn,
+                              lineno,
+                              name,
+                              lstats.timings[self.func],
+                              lstats.unit, stream=out)
                     self._line_stats_text = out.getvalue()
                 except ZeroDivisionError:
-                    self._line_stats_text = "There was a ZeroDivisionError, total_time was probably zero"
+                    self._line_stats_text = ("There was a ZeroDivisionError, "
+                                             "total_time was probably zero")
             else:
                 self._line_stats_text = False
         return self._line_stats_text
@@ -172,10 +176,15 @@ class ProfilingPanel(Panel):
         args = (request,) + view_args
         self.line_profiler = LineProfiler()
         self._unwrap_closure_and_profile(view_func)
-        view_func_name = view_func.__globals__['__name__'] if PY3 else \
-            view_func.func_globals['__name__'] 
+        if PY2:
+            view_func_name = view_func.func_globals['__name__']
+        else:
+            view_func_name = view_func.__globals__['__name__']
         if view_func_name == 'django.views.generic.base':
-            func_closure = view_func.__closure__ if PY3 else view_func.func_closure
+            if PY2:
+                func_closure = view_func.func_closure
+            else:
+                func_closure = view_func.__closure__
             for cell in func_closure:
                 target = cell.cell_contents
                 if inspect.isclass(target) and View in inspect.getmro(target):
@@ -190,13 +199,14 @@ class ProfilingPanel(Panel):
     def add_node(self, func_list, func, max_depth, cum_time=0.1):
         func_list.append(func)
         func.has_subfuncs = False
-        if func.depth < max_depth:
-            for subfunc in func.subfuncs():
-                if (subfunc.stats[3] >= cum_time or
-                        (hasattr(self.stats, 'line_stats') and
-                            (subfunc.func in self.stats.line_stats.timings))):
-                    func.has_subfuncs = True
-                    self.add_node(func_list, subfunc, max_depth, cum_time=cum_time)
+        if func.depth >= max_depth:
+            return
+        for subfunc in func.subfuncs():
+            if (subfunc.stats[3] >= cum_time or
+                    (hasattr(self.stats, 'line_stats') and
+                        (subfunc.func in self.stats.line_stats.timings))):
+                func.has_subfuncs = True
+                self.add_node(func_list, subfunc, max_depth, cum_time=cum_time)
 
     def process_response(self, request, response):
         if not hasattr(self, 'profiler'):
@@ -207,7 +217,9 @@ class ProfilingPanel(Panel):
         self.stats.line_stats = self.line_profiler.get_stats()
         self.stats.calc_callees()
 
-        root = FunctionCall(self.stats, self.stats.get_root_func(self.view_func), depth=0)
+        root = FunctionCall(self.stats,
+                            self.stats.get_root_func(self.view_func),
+                            depth=0)
 
         func_list = []
         self.add_node(func_list, root, 10, root.stats[3] / 8)
