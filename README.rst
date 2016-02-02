@@ -61,3 +61,32 @@ want additional code to be profiled, add the @profile_additional decorator like 
     @profile_additional(S3Connection.make_request)
     def your_view_code(*args, **kwargs):
         ...
+
+Signals
+=======
+
+There is also a signal (debug_toolbar_line_profiler.signals.profiler_setup) that
+you can attach to for integrating class based views like django rest framework.
+
+Here is an example::
+
+    from rest_framework.viewsets import ViewSet
+    from rest_framework.response import Response
+    from debug_toolbar_line_profiler import signals
+
+
+    class AViewSet(ViewSet):
+        def list(self, request):
+            return Response([])
+
+        def retrieve(self, request, pk=None):
+            return Response({})
+
+
+    def register_profile_views(sender, profiler, **kwargs):
+        profiler.add_function(AViewSet.list)
+        profiler.add_function(AViewSet.retrieve)
+
+
+    signals.profiler_setup.connect(register_profile_views,
+                                   dispatch_uid='register_profile_views')

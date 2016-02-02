@@ -2,12 +2,12 @@ from setuptools import setup, find_packages
 
 setup(
     name='django-debug-toolbar-line-profiler',
-    version='0.4.0',
+    version='0.5.0',
     description='A panel for django-debug-toolbar that integrates ' +
                 'information from line_profiler',
     long_description=open('README.rst').read(),
     author='Dave McLain',
-    author_email='python@davemclain.com',
+    author_email='dmclain@gmail.com',
     url='https://github.com/dmclain/django-debug-toolbar-line-profiler',
     download_url='https://pypi.python.org/pypi/django-debug-toolbar-line-profiler',
     license='BSD',
@@ -30,6 +30,7 @@ setup(
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
 )
