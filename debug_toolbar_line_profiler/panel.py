@@ -31,11 +31,15 @@ class DjangoDebugToolbarStats(Stats):
                         and func[1] == firstlineno):
                     self.__root = func
                     break
-            assert self.__root is not None
         return self.__root
 
 
 class FunctionCall(object):
+    """
+    The FunctionCall object is a helper object that encapsulates some of the
+    complexity of working with pstats/cProfile objects
+
+    """
     def __init__(self, statobj, func, depth=0, stats=None,
                  id=0, parent_ids=[], hsv=(0, 0.5, 1)):
         self.statobj = statobj
@@ -110,7 +114,6 @@ class FunctionCall(object):
         return self.stats[2]
 
     def cumtime(self):
-        cc, nc, tt, ct = self.stats
         return self.stats[3]
 
     def tottime_per_call(self):
@@ -204,14 +207,34 @@ class ProfilingPanel(Panel):
         return out
 
     def add_node(self, func_list, func, max_depth, cum_time=0.1):
+        """
+        add_node does a depth first traversal of the call graph, appending a
+        FunctionCall object to func_list, so that the Django template only
+        has to do a single for loop over func_list that can render a tree
+        structure
+
+        Parameters:
+            func_list is an array that will have a FunctionCall for each call
+                added to it
+            func is a FunctionCall object that will have all its callees added
+            max_depth is the maximum depth we should recurse
+            cum_time is the minimum cum_time a function should have to be
+                included in the output
+        """
         func_list.append(func)
         func.has_subfuncs = False
+        # this function somewhat dangerously relies on FunctionCall to set its
+        # subfuncs' depth argument correctly
         if func.depth >= max_depth:
             return
+
+        # func.subfuncs returns FunctionCall objects
         for subfunc in func.subfuncs():
-            if (subfunc.stats[3] >= cum_time or
+            # a sub function is important if it takes a long time or it has
+            # line_stats
+            if (subfunc.cumtime >= cum_time or
                     (hasattr(self.stats, 'line_stats') and
-                        (subfunc.func in self.stats.line_stats.timings))):
+                     subfunc.func in self.stats.line_stats.timings)):
                 func.has_subfuncs = True
                 self.add_node(func_list, subfunc, max_depth, cum_time=cum_time)
 
@@ -224,11 +247,23 @@ class ProfilingPanel(Panel):
         self.stats.line_stats = self.line_profiler.get_stats()
         self.stats.calc_callees()
 
-        root = FunctionCall(self.stats,
-                            self.stats.get_root_func(self.view_func),
-                            depth=0)
-
         func_list = []
-        self.add_node(func_list, root, 10, root.stats[3] / 8)
+
+        root_func = self.stats.get_root_func(self.view_func)
+
+        if root_func is not None:
+            root_node = FunctionCall(statobj=self.stats,
+                                     func=root_func,
+                                     depth=0)
+            self.add_node(
+                func_list=func_list,
+                func=root_node,
+                max_depth=10,
+                cum_time=root_node.cumtime / 8
+            )
+        # else:
+        # what should we do if we didn't detect a root function? It's not
+        # clear what causes this, but there are real world examples of it (see
+        # https://github.com/dmclain/django-debug-toolbar-line-profiler/issues/11)
 
         self.record_stats({'func_list': func_list})
