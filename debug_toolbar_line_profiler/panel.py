@@ -95,7 +95,7 @@ class FunctionCall(object):
         for func, stats in self.statobj.all_callees[self.func].items():
             i += 1
             h1 = h + (i / count) / (self.depth + 1)
-            if stats[3] == 0:
+            if stats[3] == 0 or self.stats[3] == 0:
                 s1 = 0
             else:
                 s1 = s * (stats[3] / self.stats[3])
@@ -248,7 +248,6 @@ class ProfilingPanel(Panel):
         self.stats.calc_callees()
 
         func_list = []
-
         root_func = self.stats.get_root_func(self.view_func)
 
         if root_func is not None:
@@ -259,7 +258,7 @@ class ProfilingPanel(Panel):
                 func_list=func_list,
                 func=root_node,
                 max_depth=10,
-                cum_time=root_node.cumtime / 8
+                cum_time=root_node.cumtime() / 8
             )
         # else:
         # what should we do if we didn't detect a root function? It's not
