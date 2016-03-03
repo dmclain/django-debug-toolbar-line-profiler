@@ -170,10 +170,20 @@ class ProfilingPanel(Panel):
         self.line_profiler.add_function(func)
         for subfunc in getattr(func, 'profile_additional', []):
             self._unwrap_closure_and_profile(subfunc)
-        if func.__closure__:
-            for cell in func.__closure__:
-                if hasattr(cell.cell_contents, '__code__'):
+        if PY2:
+            func_closure = func.func_closure
+        else:
+            func_closure = func.__closure__
+
+        if func_closure:
+            for cell in func_closure:
+                target = cell.cell_contents
+                if hasattr(target, '__code__'):
                     self._unwrap_closure_and_profile(cell.cell_contents)
+                if inspect.isclass(target) and View in inspect.getmro(target):
+                    for name, value in inspect.getmembers(target):
+                        if name[0] != '_' and inspect.ismethod(value):
+                            self._unwrap_closure_and_profile(value)
 
     def process_view(self, request, view_func, view_args, view_kwargs):
         self.view_func = view_func
@@ -181,21 +191,6 @@ class ProfilingPanel(Panel):
         args = (request,) + view_args
         self.line_profiler = LineProfiler()
         self._unwrap_closure_and_profile(view_func)
-        if PY2:
-            view_func_name = view_func.func_globals['__name__']
-        else:
-            view_func_name = view_func.__globals__['__name__']
-        if view_func_name == 'django.views.generic.base':
-            if PY2:
-                func_closure = view_func.func_closure
-            else:
-                func_closure = view_func.__closure__
-            for cell in func_closure:
-                target = cell.cell_contents
-                if inspect.isclass(target) and View in inspect.getmro(target):
-                    for name, value in inspect.getmembers(target):
-                        if name[0] != '_' and inspect.ismethod(value):
-                            self._unwrap_closure_and_profile(value)
         signals.profiler_setup.send(sender=self,
                                     profiler=self.line_profiler,
                                     view_func=view_func,
@@ -229,14 +224,19 @@ class ProfilingPanel(Panel):
             return
 
         # func.subfuncs returns FunctionCall objects
-        for subfunc in func.subfuncs():
+        subs = sorted(func.subfuncs(), key=FunctionCall.cumtime, reverse=True)
+        for subfunc in subs:
             # a sub function is important if it takes a long time or it has
             # line_stats
-            if (subfunc.cumtime >= cum_time or
+            if (subfunc.cumtime() >= cum_time or
                     (hasattr(self.stats, 'line_stats') and
                      subfunc.func in self.stats.line_stats.timings)):
                 func.has_subfuncs = True
-                self.add_node(func_list, subfunc, max_depth, cum_time=cum_time)
+                self.add_node(
+                    func_list=func_list,
+                    func=subfunc,
+                    max_depth=max_depth,
+                    cum_time=subfunc.cumtime()/16)
 
     def process_response(self, request, response):
         if not hasattr(self, 'profiler'):
