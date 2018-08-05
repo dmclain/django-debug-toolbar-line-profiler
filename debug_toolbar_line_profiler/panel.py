@@ -76,7 +76,8 @@ class FunctionCall(object):
             if idx > -1:
                 file_name = file_name[(idx + 14):]
 
-            file_path, file_name = file_name.rsplit(os.sep, 1)
+            file_items = file_name.rsplit(os.sep, 1)
+            file_path, file_name = file_items if len(file_items) > 1 else [None, file_name]
 
             return mark_safe(
                 '<span class="path">{0}/</span>'
