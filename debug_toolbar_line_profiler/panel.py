@@ -12,6 +12,7 @@ from django.utils.safestring import mark_safe
 from django.utils.six.moves import cStringIO
 from debug_toolbar.panels import Panel
 from django.views.generic.base import View
+from django.urls import resolve
 
 from line_profiler import LineProfiler, show_func
 
@@ -185,19 +186,22 @@ class ProfilingPanel(Panel):
                         if name[0] != '_' and inspect.ismethod(value):
                             self._unwrap_closure_and_profile(value)
 
-    def process_view(self, request, view_func, view_args, view_kwargs):
+
+    def process_request(self, request):
+        match = resolve(request.path)
+        view_func, view_args, view_kwargs = match
         self.view_func = view_func
+
         self.profiler = cProfile.Profile()
-        args = (request,) + view_args
         self.line_profiler = LineProfiler()
-        self._unwrap_closure_and_profile(view_func)
+        self._unwrap_closure_and_profile(self.view_func)
         signals.profiler_setup.send(sender=self,
                                     profiler=self.line_profiler,
                                     view_func=view_func,
                                     view_args=view_args,
                                     view_kwargs=view_kwargs)
         self.line_profiler.enable_by_count()
-        out = self.profiler.runcall(view_func, *args, **view_kwargs)
+        out = self.profiler.runcall(super().process_request, request)
         self.line_profiler.disable_by_count()
         return out
 
@@ -238,7 +242,7 @@ class ProfilingPanel(Panel):
                     max_depth=max_depth,
                     cum_time=subfunc.cumtime()/16)
 
-    def process_response(self, request, response):
+    def generate_stats(self, request, response):
         if not hasattr(self, 'profiler'):
             return None
         # Could be delayed until the panel content is requested (perf. optim.)
