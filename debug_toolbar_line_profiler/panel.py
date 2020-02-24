@@ -76,7 +76,11 @@ class FunctionCall(object):
             if idx > -1:
                 file_name = file_name[(idx + 14):]
 
-            file_path, file_name = file_name.rsplit(os.sep, 1)
+            frozen = file_name.find('<frozen')
+            if frozen > -1:
+                file_path, file_name = ('', file_name)
+            else:
+                file_path, file_name = file_name.rsplit(os.sep, 1)
 
             return mark_safe(
                 '<span class="path">{0}/</span>'
