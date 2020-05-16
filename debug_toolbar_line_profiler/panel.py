@@ -171,8 +171,11 @@ class ProfilingPanel(Panel):
     template = 'debug_toolbar_line_profiler/panels/profiling.html'
 
     def _unwrap_closure_and_profile(self, func):
-        if not hasattr(func, '__code__'):
+        if not hasattr(func, '__code__') or func in self.added:
             return
+
+        self.added.add(func)
+
         self.line_profiler.add_function(func)
         for subfunc in getattr(func, 'profile_additional', []):
             self._unwrap_closure_and_profile(subfunc)
@@ -199,6 +202,7 @@ class ProfilingPanel(Panel):
         self.view_func = view_func
         self.profiler = cProfile.Profile()
         self.line_profiler = LineProfiler()
+        self.added = set()
         self._unwrap_closure_and_profile(self.view_func)
         signals.profiler_setup.send(sender=self,
                                     profiler=self.line_profiler,
