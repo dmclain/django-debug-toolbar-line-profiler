@@ -3,7 +3,7 @@ Django Debug Toolbar Line Profile Panel
 =======================================
 
 The `Django Debug Toolbar 
-<https://github.com/django-debug-toolbar/django-debug-toolbar>`_ is a configurable set of panels that display various
+<https://github.com/mikekeda/django-debug-toolbar-line-profiling>`_ is a configurable set of panels that display various
 debug information about the current request/response and when clicked, display
 more details about the panel's content.
 
@@ -32,18 +32,18 @@ in August 2008 and was further developed by many contributors.
 Installation
 ============
 
-To install the line_profiler panel, first install this package with ``pip install django-debug-toolbar-line-profiler``, then add debug_toolbar_line_profiler to the INSTALLED_APPS::
+To install the line_profiler panel, first install this package with ``pip install django-debug-toolbar-line-profiling``, then add debug_toolbar_line_profiler to the INSTALLED_APPS::
 
     INSTALLED_APPS = (
         ...
-        'debug_toolbar_line_profiler',
+        'debug_toolbar_line_profiling',
     )
 
 and add the panel to DEBUG_TOOLBAR_PANELS::
 
     DEBUG_TOOLBAR_PANELS = (
         ...
-        'debug_toolbar_line_profiler.panel.ProfilingPanel',
+        'debug_toolbar_line_profiling.panel.ProfilingPanel',
     )
 
 Configuration
