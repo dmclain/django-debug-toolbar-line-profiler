@@ -2,13 +2,13 @@ from setuptools import setup, find_packages
 
 setup(
     name='django-debug-toolbar-line-profiling',
-    version='0.7.0',
+    version='0.7.1',
     description='A panel for django-debug-toolbar that integrates ' +
                 'information from line_profiler',
     long_description=open('README.rst').read(),
     author='Mykhailo Keda',
     author_email='mriynuk@gmail.com',
-    url='https://github.com/mikekeda/django-debug-toolbar-line-profiling',
+    url='https://github.com/mikekeda/django-debug-toolbar-line-profiler',
     download_url='https://pypi.python.org/pypi/django-debug-toolbar-line-profiling',
     license='BSD',
     packages=find_packages(exclude=('tests', 'example')),
