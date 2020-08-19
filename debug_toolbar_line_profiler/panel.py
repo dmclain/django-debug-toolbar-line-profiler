@@ -7,9 +7,13 @@ import os
 from pstats import Stats
 from six import PY2
 
+from django.urls import resolve
 from django.utils.translation import ugettext_lazy as _
 from django.utils.safestring import mark_safe
-from django.utils.six.moves import cStringIO
+try:
+    from django.utils.six.moves import cStringIO
+except ImportError:
+    from io import StringIO as cStringIO
 from debug_toolbar.panels import Panel
 from django.views.generic.base import View
 
@@ -26,7 +30,7 @@ class DjangoDebugToolbarStats(Stats):
             filename = view_func.__code__.co_filename
             firstlineno = view_func.__code__.co_firstlineno
             for func, (cc, nc, tt, ct, callers) in self.stats.items():
-                if (len(callers) == 0
+                if (len(callers) >= 0
                         and func[0] == filename
                         and func[1] == firstlineno):
                     self.__root = func
@@ -76,7 +80,9 @@ class FunctionCall(object):
             if idx > -1:
                 file_name = file_name[(idx + 14):]
 
-            file_path, file_name = file_name.rsplit(os.sep, 1)
+            file_items = file_name.rsplit(os.sep, 1)
+            file_path, file_name = file_items if len(file_items) > 1 else [
+                None, file_name]
 
             return mark_safe(
                 '<span class="path">{0}/</span>'
@@ -165,8 +171,11 @@ class ProfilingPanel(Panel):
     template = 'debug_toolbar_line_profiler/panels/profiling.html'
 
     def _unwrap_closure_and_profile(self, func):
-        if not hasattr(func, '__code__'):
+        if not hasattr(func, '__code__') or func in self.added:
             return
+
+        self.added.add(func)
+
         self.line_profiler.add_function(func)
         for subfunc in getattr(func, 'profile_additional', []):
             self._unwrap_closure_and_profile(subfunc)
@@ -182,22 +191,26 @@ class ProfilingPanel(Panel):
                     self._unwrap_closure_and_profile(cell.cell_contents)
                 if inspect.isclass(target) and View in inspect.getmro(target):
                     for name, value in inspect.getmembers(target):
-                        if name[0] != '_' and inspect.ismethod(value):
+                        if not name.startswith('__') and (
+                            inspect.ismethod(value) or
+                            inspect.isfunction(value)
+                        ):
                             self._unwrap_closure_and_profile(value)
 
-    def process_view(self, request, view_func, view_args, view_kwargs):
+    def process_request(self, request):
+        view_func, view_args, view_kwargs = resolve(request.path)
         self.view_func = view_func
         self.profiler = cProfile.Profile()
-        args = (request,) + view_args
         self.line_profiler = LineProfiler()
-        self._unwrap_closure_and_profile(view_func)
+        self.added = set()
+        self._unwrap_closure_and_profile(self.view_func)
         signals.profiler_setup.send(sender=self,
                                     profiler=self.line_profiler,
                                     view_func=view_func,
                                     view_args=view_args,
                                     view_kwargs=view_kwargs)
         self.line_profiler.enable_by_count()
-        out = self.profiler.runcall(view_func, *args, **view_kwargs)
+        out = self.profiler.runcall(super().process_request, request)
         self.line_profiler.disable_by_count()
         return out
 
@@ -238,7 +251,7 @@ class ProfilingPanel(Panel):
                     max_depth=max_depth,
                     cum_time=subfunc.cumtime()/16)
 
-    def process_response(self, request, response):
+    def generate_stats(self, request, response):
         if not hasattr(self, 'profiler'):
             return None
         # Could be delayed until the panel content is requested (perf. optim.)
