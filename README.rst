@@ -3,7 +3,7 @@ Django Debug Toolbar Line Profile Panel
 =======================================
 
 The `Django Debug Toolbar 
-<https://github.com/mikekeda/django-debug-toolbar-line-profiler>`_ is a configurable set of panels that display various
+<https://github.com/django-debug-toolbar/django-debug-toolbar>`_ is a configurable set of panels that display various
 debug information about the current request/response and when clicked, display
 more details about the panel's content.
 
